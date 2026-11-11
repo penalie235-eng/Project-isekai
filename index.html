@@ -146,6 +146,7 @@ button{font-family:inherit;cursor:pointer}
 .nw{padding:8px 0;border-bottom:1px solid var(--line);font-size:.92em;line-height:1.5}
 .nw small{color:var(--mute);margin-left:6px}
 .tabs button{padding:3px 4px!important}
+.secret{-webkit-text-security:disc;text-security:disc}
 </style>
 </head>
 <body>
@@ -175,7 +176,7 @@ button{font-family:inherit;cursor:pointer}
   <div id="ctrl">
     <div id="choices"></div>
     <div class="inrow">
-      <input type="text" id="userInput" placeholder="คุณจะทำอะไรต่อไป..." onkeypress="if(event.key==='Enter')sendMessage()">
+      <input type="text" id="userInput" name="eld-chat-msg" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="คุณจะทำอะไรต่อไป..." onkeypress="if(event.key==='Enter')sendMessage()">
       <button class="dice" id="diceBtn" onclick="rollDice()">🎲</button>
       <button class="send" onclick="sendMessage()">ส่ง</button>
     </div>
@@ -204,16 +205,16 @@ button{font-family:inherit;cursor:pointer}
       <option value="openai">OpenAI-compatible (OpenRouter, LM Studio, KoboldCpp ฯลฯ)</option>
     </select>
     <div id="pGemini">
-      <label>Gemini API Key</label><input type="password" id="gemKey" placeholder="AIzaSy...">
+      <label>Gemini API Key</label><input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="gemKey" placeholder="AIzaSy...">
       <label>ชื่อโมเดล</label><input type="text" id="gemModel" placeholder="gemini-3.6-flash">
     </div>
     <div id="pClaude">
-      <label>Claude API Key</label><input type="password" id="claudeKey" placeholder="sk-ant-...">
+      <label>Claude API Key</label><input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="claudeKey" placeholder="sk-ant-...">
       <label>ชื่อโมเดล</label><input type="text" id="claudeModel" placeholder="claude-sonnet-5-5">
     </div>
     <div id="pOpenai">
       <label>Base URL</label><input type="text" id="oaiBase" placeholder="http://192.168.1.10:1234/v1">
-      <label>API Key (ถ้าไม่มีเว้นว่างได้)</label><input type="password" id="oaiKey">
+      <label>API Key (ถ้าไม่มีเว้นว่างได้)</label><input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="oaiKey">
       <label>ชื่อโมเดล</label><input type="text" id="oaiModel" placeholder="ชื่อโมเดลตามที่เซิร์ฟเวอร์ใช้">
       <div class="note">ถ้าใช้โมเดลในคอม ต้องเปิดเซิร์ฟเวอร์และเปิด CORS ในโปรแกรมนั้น และมือถือกับคอมต้องอยู่ Wi-Fi เดียวกัน</div>
     </div>
@@ -263,7 +264,7 @@ button{font-family:inherit;cursor:pointer}
     <div id="pImg">
       <div class="note">Gemini Image: ใส่ Key (เว้นว่างได้ถ้าใช้ Gemini เล่าเรื่องอยู่แล้ว) และชื่อโมเดล เช่น gemini-2.5-flash-image (เว้นว่างใช้ค่าเริ่มต้น)</div>
       <label>Base URL (เฉพาะ OpenAI-compatible)</label><input type="text" id="imgBase" placeholder="https://api.openai.com/v1">
-      <label>API Key</label><input type="password" id="imgKey">
+      <label>API Key</label><input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="imgKey">
       <label>ชื่อโมเดลภาพ</label><input type="text" id="imgModel" placeholder="เช่น gpt-image-1">
     </div>
     <label>สไตล์ภาพที่ต่อท้ายพรอมต์ทุกครั้ง</label>
@@ -1397,13 +1398,13 @@ function buildMsgs(){
   while(h.length && h[0].role !== 'user') h.shift();
   return h.map(function(m){ return { role: m.role === 'user' ? 'user' : 'assistant', content: m.parts[0].text }; });
 }
-function gemCall(sp, msgs, level){
+function gemCall(sp, msgs, level, maxOut){
   var body = {
     system_instruction:{ parts:[{ text:sp }] },
     contents: msgs.map(function(m){ return { role: m.role === 'user' ? 'user' : 'model', parts:[{ text:m.content }] }; }),
     safetySettings: ["HARASSMENT","HATE_SPEECH","SEXUALLY_EXPLICIT","DANGEROUS_CONTENT"].map(function(c){ return { category:'HARM_CATEGORY_' + c, threshold:'BLOCK_NONE' }; })
   };
-  if(level) body.generationConfig = { thinkingConfig:{ thinkingLevel:level } };
+  if(level || maxOut){ body.generationConfig = {}; if(level) body.generationConfig.thinkingConfig = { thinkingLevel:level }; if(maxOut) body.generationConfig.maxOutputTokens = maxOut; }
   return fetch('https://generativelanguage.googleapis.com/v1beta/models/' + cfg.gemModel + ':generateContent?key=' + cfg.gemKey, {
     method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body)
   }).then(function(r){ return r.json(); });
@@ -1419,7 +1420,23 @@ async function callAI(sp, msgs, maxTok, think){
     if(d.error) throw new Error(errMsg(d));
     var c = d.candidates && d.candidates[0];
     var t = c && c.content && c.content.parts && c.content.parts[0] && c.content.parts[0].text;
-    if(!t) throw new Error("ไม่ได้รับคำตอบ (" + ((d.promptFeedback && d.promptFeedback.blockReason) || (c && c.finishReason) || "ไม่ทราบสาเหตุ") + ") ลองส่งใหม่อีกครั้ง");
+    if(!t){
+      var br = d.promptFeedback && d.promptFeedback.blockReason, why = br || (c && c.finishReason) || "ไม่ทราบสาเหตุ";
+      var hint = "";
+      if(br){
+        hint = " Gemini บล็อกข้อความที่ส่งไป (ตัวกรองของ Google ปิดจากฝั่งเว็บไม่ได้)";
+        if(msgs.length > 2){
+          try {
+            var pr = await gemCall(sp, msgs.slice(-1), /gemini-(3|4)/.test(cfg.gemModel) && thinkBad !== cfg.gemModel ? 'low' : '', 24);
+            if(pr.error) throw new Error('probe');
+            var blocked2 = pr.promptFeedback && pr.promptFeedback.blockReason;
+            hint += blocked2 ? " | ตรวจแล้ว: แม้ส่งแค่พรอมต์ระบบกับข้อความล่าสุดก็ยังโดนบล็อก สาเหตุอยู่ที่พรอมต์หลัก/Lorebook/ความจำเรื่องราว/ข้อมูลตัวละคร ลองดูความจำและกฎที่เรียนรู้ในตั้งค่า"
+                               : " | ตรวจแล้ว: พรอมต์ระบบกับข้อความล่าสุดผ่าน สาเหตุอยู่ในประวัติแชทก่อนหน้า ลองกดย้อนกลับ/แก้ข้อความช่วงล่าสุด หรือลดจำนวนประวัติที่ส่งในตั้งค่า (12) แล้วลองใหม่";
+          } catch(e2){}
+        }
+      } else if(/PROHIBITED|SAFETY|BLOCK|OTHER|RECITATION/i.test(why)) hint = " คำตอบถูกบล็อกตอนสร้าง ลองกดสร้างคำตอบใหม่";
+      throw new Error("ไม่ได้รับคำตอบ (" + why + ")" + (hint || " ลองส่งใหม่อีกครั้ง"));
+    }
     return t;
   }
   if(cfg.provider === 'claude'){
