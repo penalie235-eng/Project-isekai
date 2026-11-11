@@ -1,4 +1,4 @@
-/* Eldrasia add-on: ตรวจหาส่วนที่ถูก Gemini บล็อก + ตัดพื้นหลังตัวละครอัตโนมัติ + ล้างแคชแอป */
+/* Eldrasia add-on: ตรวจหาส่วนที่ถูก Gemini บล็อก + ตัดพื้นหลังตัวละครอัตโนมัติ + ล้างแคชแอป + สลับโมเดลสำรองเมื่อโควตาเต็ม */
 (function(){
 'use strict';
 var W = window;
@@ -85,7 +85,7 @@ W.renderCast = function(){
 };
 
 /* ================= ตรวจหาส่วนที่ถูก Gemini บล็อก ================= */
-async function diagBlock(){
+async function diagBlock0(){
   if(W.closeModal) W.closeModal('toolsModal');
   if(W.cfg.provider !== 'gemini'){ alert('ตัวตรวจใช้ได้เมื่อเลือก Gemini เป็น AI เล่าเรื่อง'); return; }
   if(!W.cfg.gemKey){ alert('ยังไม่ได้ใส่ Gemini API Key'); return; }
@@ -154,6 +154,11 @@ async function diagBlock(){
   html += '<div class="note">ตัวกรองนี้เป็นของ Google ปรับจากหน้าเว็บไม่ได้ ส่วนที่ขึ้นสีแดงคือส่วนที่ต้องแก้หรือเอาออกในตั้งค่า ถ้าต้องการเนื้อหาที่ Gemini ไม่รับ ให้เปลี่ยนไปใช้ผู้ให้บริการอื่นแทน</div>';
   show(html);
 }
+/* ระหว่างตรวจ ปิดการสลับโมเดลสำรอง เพื่อให้ผลตรวจเป็นของโมเดลหลักจริงๆ */
+async function diagBlock(){
+  W.EldNoFb = true;
+  try { await diagBlock0(); } finally { W.EldNoFb = false; }
+}
 
 /* ================= ล้างแคชแอป (ไม่ลบเซฟ) ================= */
 async function clearAppCache(){
@@ -164,6 +169,41 @@ async function clearAppCache(){
     var ks = await caches.keys(); for(var j = 0; j < ks.length; j++) await caches.delete(ks[j]);
   } catch(e){}
   location.reload();
+}
+
+/* ================= สลับโมเดล Gemini อัตโนมัติเมื่อโควตาเต็ม/เซิร์ฟเวอร์ไม่ว่าง ================= */
+var FB_DEFAULT = 'gemini-3.8-flash, gemini-2.5-flash, gemini-2.5-flash-lite';
+function fbList(){ var v = localStorage.getItem('eld_fb'); if(v === null) v = FB_DEFAULT; return v.split(',').map(function(x){ return x.trim(); }).filter(Boolean); }
+function isQuota(d){ return !!(d && d.error && (d.error.code === 429 || d.error.code === 503 || /RESOURCE_EXHAUSTED|UNAVAILABLE|quota|rate limit|overloaded/i.test(JSON.stringify(d.error)))); }
+var _gc = W.gemCall, fbChain = Promise.resolve();
+if(_gc){
+  W.gemCall = async function(sp, msgs, level, maxOut){
+    var first = await _gc(sp, msgs, level, maxOut);
+    if(W.EldNoFb || !isQuota(first)) return first;
+    /* เข้าคิวทีละงาน เพราะต้องสลับ cfg.gemModel ชั่วคราว ถ้าสองงานสลับพร้อมกันโมเดลหลักอาจถูกเขียนทับ */
+    var run = async function(){
+      var orig = W.cfg.gemModel, list = fbList().filter(function(m){ return m !== orig; });
+      try {
+        for(var i = 0; i < list.length; i++){
+          W.cfg.gemModel = list[i];
+          var d2 = await _gc(sp, msgs, /gemini-(3|4)/.test(list[i]) ? level : '', maxOut);
+          if(!d2.error){ toast('⚠️ ' + orig + ' ใช้ไม่ได้ชั่วคราว สลับไปใช้ ' + list[i]); return d2; }
+        }
+      } finally { W.cfg.gemModel = orig; }
+      return first;
+    };
+    var p = fbChain.then(run, run); fbChain = p.catch(function(){}); return p;
+  };
+}
+function injectFb(){
+  var st = document.querySelector('#settings .sheet'), hs = st ? st.querySelectorAll('h4') : [], anchor = null;
+  for(var i = 0; i < hs.length; i++){ if(hs[i].textContent.indexOf('สร้างภาพ') >= 0) anchor = hs[i]; }
+  if(!anchor) return;
+  var box = document.createElement('div');
+  box.innerHTML = '<h4>สำรองโมเดล Gemini (เมื่อโควตาเต็ม)</h4><label>ชื่อโมเดลสำรอง คั่นด้วยจุลภาค ระบบลองตามลำดับเมื่อโควตาของโมเดลหลักหมด (แต่ละโมเดลมีโควตาแยกกัน)</label><input type="text" id="fbList" autocomplete="off"><div class="note">โมเดลรุ่นเก่ากว่าอาจเขียนได้แย่กว่า ถ้าชื่อไม่ตรงจะขึ้น error 404 ให้เช็กชื่อที่ถูกต้องจากหน้า Rate Limit ใน Google AI Studio</div>';
+  anchor.parentNode.insertBefore(box, anchor);
+  var inp = $('fbList'); inp.value = fbList().join(', ');
+  inp.onchange = function(){ localStorage.setItem('eld_fb', inp.value); };
 }
 
 /* ================= ฉีดปุ่ม/หน้าต่างเข้า UI เดิม ================= */
@@ -193,6 +233,7 @@ function inject(){
     $('cutAuto').checked = c.auto; $('cutTol').value = String(c.tol);
     $('cutAuto').onchange = save; $('cutTol').onchange = save;
   }
+  injectFb();
 }
 inject();
 W.EldAddon = { cutCore:cutCore, cutBg:cutBg, diagBlock:diagBlock };
