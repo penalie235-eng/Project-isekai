@@ -32,7 +32,7 @@ function cutCore(d, w, h, tol){
     if(px > 0) push(p - 1); if(px < w - 1) push(p + 1); if(p >= w) push(p - w); if(p < N - w) push(p + w);
   }
   var cnt = 0; for(i = 0; i < N; i++) if(bg[i]) cnt++;
-  if(cnt < N * 0.02 || cnt > N * 0.9) return false;           /* ไม่มีอะไรให้ตัด หรือกินตัวละครไปด้วย */
+  if(cnt < N * 0.02 || cnt > N * 0.09 * 10) return false;    /* ไม่มีอะไรให้ตัด หรือกินตัวละครไปด้วย */
   var soft = tol * 1.8;
   for(i = 0; i < N; i++){
     if(bg[i]){ d[i*4+3] = 0; continue; }
@@ -61,10 +61,8 @@ function toast(t){
   d.textContent = t; document.body.appendChild(d); setTimeout(function(){ d.remove(); }, 3200);
 }
 
-/* ปุ่ม "ลบพื้นหลัง" เดิมในเมนูตัวละครเรียกฟังก์ชันนี้ ตอนนี้ใช้ได้กับทุกสีพื้น ไม่ใช่แค่สีดำ */
 W.removeBlackBg = function(src){ return cutBg(src, tolVal()).then(function(r){ return r || src; }); };
 
-/* รูปตัวละครอัปผ่าน pickImage(..., 768, ...) เท่านั้น (สถานที่/ฉากหลังใช้ 1280) */
 var _pick = W.pickImage;
 W.pickImage = function(cb, maxSize, quality){
   if(maxSize === 768 && cutCfg().auto){
@@ -154,7 +152,6 @@ async function diagBlock0(){
   html += '<div class="note">ตัวกรองนี้เป็นของ Google ปรับจากหน้าเว็บไม่ได้ ส่วนที่ขึ้นสีแดงคือส่วนที่ต้องแก้หรือเอาออกในตั้งค่า ถ้าต้องการเนื้อหาที่ Gemini ไม่รับ ให้เปลี่ยนไปใช้ผู้ให้บริการอื่นแทน</div>';
   show(html);
 }
-/* ระหว่างตรวจ ปิดการสลับโมเดลสำรอง เพื่อให้ผลตรวจเป็นของโมเดลหลักจริงๆ */
 async function diagBlock(){
   W.EldNoFb = true;
   try { await diagBlock0(); } finally { W.EldNoFb = false; }
@@ -172,7 +169,7 @@ async function clearAppCache(){
 }
 
 /* ================= สลับโมเดล Gemini อัตโนมัติเมื่อโควตาเต็ม/เซิร์ฟเวอร์ไม่ว่าง ================= */
-var FB_DEFAULT = 'gemini-3.8-flash, gemini-2.5-flash, gemini-2.5-flash-lite';
+var FB_DEFAULT = 'gemini-3.8-flash, gemini-3.6-flash, gemini-2.5-flash, gemini-2.5-flash-lite, gemini-2.0-flash';
 function fbList(){ var v = localStorage.getItem('eld_fb'); if(v === null) v = FB_DEFAULT; return v.split(',').map(function(x){ return x.trim(); }).filter(Boolean); }
 function isQuota(d){ return !!(d && d.error && (d.error.code === 429 || d.error.code === 503 || /RESOURCE_EXHAUSTED|UNAVAILABLE|quota|rate limit|overloaded/i.test(JSON.stringify(d.error)))); }
 var _gc = W.gemCall, fbChain = Promise.resolve();
@@ -180,16 +177,20 @@ if(_gc){
   W.gemCall = async function(sp, msgs, level, maxOut){
     var first = await _gc(sp, msgs, level, maxOut);
     if(W.EldNoFb || !isQuota(first)) return first;
-    /* เข้าคิวทีละงาน เพราะต้องสลับ cfg.gemModel ชั่วคราว ถ้าสองงานสลับพร้อมกันโมเดลหลักอาจถูกเขียนทับ */
+    /* เข้าคิวทีละงาน และอัปเดตชื่อโมเดลที่ใช้งานจริงในตั้งค่าทันทีเมื่อสลับสำเร็จ */
     var run = async function(){
       var orig = W.cfg.gemModel, list = fbList().filter(function(m){ return m !== orig; });
-      try {
-        for(var i = 0; i < list.length; i++){
-          W.cfg.gemModel = list[i];
-          var d2 = await _gc(sp, msgs, /gemini-(3|4)/.test(list[i]) ? level : '', maxOut);
-          if(!d2.error){ toast('⚠️ ' + orig + ' ใช้ไม่ได้ชั่วคราว สลับไปใช้ ' + list[i]); return d2; }
+      for(var i = 0; i < list.length; i++){
+        W.cfg.gemModel = list[i];
+        var d2 = await _gc(sp, msgs, /gemini-(3|4)/.test(list[i]) ? level : '', maxOut);
+        if(!d2.error){
+          if(W.updateActiveModelUI) W.updateActiveModelUI('gemini', list[i]);
+          try { localStorage.setItem('eld_cfg', JSON.stringify(W.cfg)); } catch(e){}
+          toast('⚠️ ' + orig + ' โควตาเต็ม/ใช้ไม่ได้ สลับไปใช้ ' + list[i] + ' (อัปเดตในตั้งค่าแล้ว)');
+          return d2;
         }
-      } finally { W.cfg.gemModel = orig; }
+      }
+      W.cfg.gemModel = orig;
       return first;
     };
     var p = fbChain.then(run, run); fbChain = p.catch(function(){}); return p;
