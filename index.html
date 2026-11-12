@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -200,23 +201,88 @@ button{font-family:inherit;cursor:pointer}
   <div class="sheet">
     <h3>ตั้งค่า</h3>
     <label>AI ที่ใช้เล่าเรื่อง</label>
-    <select id="cProv" onchange="showProv()">
-      <option value="gemini">Gemini (Google)</option>
+    <select id="cProv" onchange="showProv(true)">
+      <option value="gemini">Gemini (Google - ฟรี แนะนำ)</option>
+      <option value="openrouter">OpenRouter (ฟรีหลายโมเดล DeepSeek, Qwen, Llama ฯลฯ)</option>
+      <option value="groq">Groq (ฟรี เร็วพิเศษ Llama, Qwen)</option>
+      <option value="pollinations">Pollinations AI (ฟรี 100% ไม่ต้องใช้ API Key)</option>
       <option value="claude">Claude (Anthropic)</option>
-      <option value="openai">OpenAI-compatible (OpenRouter, LM Studio, KoboldCpp ฯลฯ)</option>
+      <option value="openai">Custom OpenAI-compatible (LM Studio, KoboldCpp, อื่นๆ)</option>
     </select>
     <div id="pGemini">
-      <label>Gemini API Key</label><input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="gemKey" placeholder="AIzaSy...">
-      <label>ชื่อโมเดล</label><input type="text" id="gemModel" placeholder="gemini-3.6-flash">
+      <label>Gemini API Key (<a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--gold)">รับคีย์ฟรีที่นี่</a>)</label>
+      <input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="gemKey" placeholder="AIzaSy...">
+      <label>เลือกโมเดลฟรีแนะนำ (เปลี่ยนชื่อโมเดลอัตโนมัติ)</label>
+      <select id="gemPreset" onchange="pickPreset('gemPreset','gemModel')">
+        <option value="gemini-3.8-flash">gemini-3.8-flash (รุ่นใหม่ล่าสุด - แนะนำ)</option>
+        <option value="gemini-3.6-flash">gemini-3.6-flash (รุ่นหลัก - ภาษาไทยสวย ฉลาด)</option>
+        <option value="gemini-2.5-flash">gemini-2.5-flash (เสถียร สมดุล โควตาแยกกัน)</option>
+        <option value="gemini-2.5-pro">gemini-2.5-pro (ฉลาดลึกซึ้ง แต่งนิยายละเอียด)</option>
+        <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (เร็วมาก ประหยัดโควตา)</option>
+        <option value="gemini-2.0-flash">gemini-2.0-flash (โควตาฟรีเยอะ สำรองดี)</option>
+        <option value="custom">-- กำหนดชื่อโมเดลเองด้านล่าง --</option>
+      </select>
+      <label>ชื่อโมเดล (กำลังใช้งาน)</label><input type="text" id="gemModel" placeholder="gemini-3.6-flash" oninput="syncPreset('gemPreset','gemModel')">
     </div>
-    <div id="pClaude">
+    <div id="pOpenrouter" style="display:none">
+      <label>OpenRouter API Key (<a href="https://openrouter.ai/keys" target="_blank" style="color:var(--gold)">สมัครรับคีย์ฟรีที่นี่</a>)</label>
+      <input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="orKey" placeholder="sk-or-v1-...">
+      <label>เลือกโมเดลฟรีแนะนำ (ไม่ค่อยติดบล็อก 18+/ดาร์ก)</label>
+      <select id="orPreset" onchange="pickPreset('orPreset','orModel')">
+        <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 0324 (ฟรี - แต่งนิยายไทยเก่งมาก แนะนำ)</option>
+        <option value="deepseek/deepseek-r1:free">DeepSeek R1 (ฟรี - สายคิดวิเคราะห์ เนื้อเรื่องซับซ้อน)</option>
+        <option value="qwen/qwen3-235b-a22b:free">Qwen 3 235B (ฟรี - ภาษาไทยดีมาก โมเดลใหญ่)</option>
+        <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 2.5 72B Instruct (ฟรี - ภาษาไทยลื่นไหล)</option>
+        <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B Instruct (ฟรี - เสถียร บทสนทนาดี)</option>
+        <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash Exp (ฟรีผ่าน OpenRouter)</option>
+        <option value="custom">-- กำหนดชื่อโมเดลเองด้านล่าง --</option>
+      </select>
+      <label>ชื่อโมเดล (กำลังใช้งาน)</label><input type="text" id="orModel" placeholder="deepseek/deepseek-chat-v3-0324:free" oninput="syncPreset('orPreset','orModel')">
+    </div>
+    <div id="pGroq" style="display:none">
+      <label>Groq API Key (<a href="https://console.groq.com/keys" target="_blank" style="color:var(--gold)">สมัครรับคีย์ฟรีที่นี่</a>)</label>
+      <input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="groqKey" placeholder="gsk_...">
+      <label>เลือกโมเดลฟรีแนะนำ (ตอบไวมาก)</label>
+      <select id="groqPreset" onchange="pickPreset('groqPreset','groqModel')">
+        <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (แนะนำ - ภาษาไทยดี เร็วมาก)</option>
+        <option value="deepseek-r1-distill-llama-70b">DeepSeek R1 Distill Llama 70B (ฉลาด คิดเป็นลำดับ)</option>
+        <option value="qwen-qwq-32b">Qwen QwQ 32B (เก่งภาษาเอเชียและวางพล็อต)</option>
+        <option value="gemma2-9b-it">Gemma 2 9B IT (ขนาดเล็ก เร็ว โควตาเยอะ)</option>
+        <option value="custom">-- กำหนดชื่อโมเดลเองด้านล่าง --</option>
+      </select>
+      <label>ชื่อโมเดล (กำลังใช้งาน)</label><input type="text" id="groqModel" placeholder="llama-3.3-70b-versatile" oninput="syncPreset('groqPreset','groqModel')">
+    </div>
+    <div id="pPollinations" style="display:none">
+      <div class="note" style="color:var(--ok)">✨ ฟรี 100% ไม่ต้องสมัครสมาชิกและไม่ต้องใส่ API Key เลือกโมเดลแล้วกดบันทึกเล่นได้เลย!</div>
+      <label>เลือกโมเดลฟรีแนะนำ</label>
+      <select id="polPreset" onchange="pickPreset('polPreset','polModel')">
+        <option value="openai">OpenAI GPT-4o-mini (แนะนำ - ภาษาไทยเป็นธรรมชาติ เสถียร)</option>
+        <option value="openai-large">OpenAI GPT-4o Large (ฉลาดมาก แต่งนิยายสวย)</option>
+        <option value="deepseek">DeepSeek V3 (แต่งนิยายเก่ง ไม่ค่อยติดบล็อก)</option>
+        <option value="deepseek-reasoning">DeepSeek R1 Reasoning (สายคิดวิเคราะห์)</option>
+        <option value="qwen-coder">Qwen 2.5 (เก่งภาษาไทย/เอเชีย)</option>
+        <option value="llama">Llama 3.3 70B (บทสนทนาลื่นไหล)</option>
+        <option value="mistral">Mistral Small (อิสระ ไม่ค่อยกรองเนื้อหา)</option>
+        <option value="custom">-- กำหนดชื่อโมเดลเองด้านล่าง --</option>
+      </select>
+      <label>ชื่อโมเดล (กำลังใช้งาน)</label><input type="text" id="polModel" placeholder="openai" oninput="syncPreset('polPreset','polModel')">
+    </div>
+    <div id="pClaude" style="display:none">
       <label>Claude API Key</label><input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="claudeKey" placeholder="sk-ant-...">
-      <label>ชื่อโมเดล</label><input type="text" id="claudeModel" placeholder="claude-sonnet-5-5">
+      <label>เลือกโมเดลแนะนำ</label>
+      <select id="claudePreset" onchange="pickPreset('claudePreset','claudeModel')">
+        <option value="claude-sonnet-5-5">claude-sonnet-5-5 (ค่าเริ่มต้นเดิม)</option>
+        <option value="claude-3-7-sonnet-latest">claude-3-7-sonnet-latest (แต่งนิยายไทยเก่งมาก)</option>
+        <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest (ยอดนิยมสำหรับ Roleplay)</option>
+        <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest (เร็วและประหยัด)</option>
+        <option value="custom">-- กำหนดชื่อโมเดลเองด้านล่าง --</option>
+      </select>
+      <label>ชื่อโมเดล (กำลังใช้งาน)</label><input type="text" id="claudeModel" placeholder="claude-sonnet-5-5" oninput="syncPreset('claudePreset','claudeModel')">
     </div>
-    <div id="pOpenai">
+    <div id="pOpenai" style="display:none">
       <label>Base URL</label><input type="text" id="oaiBase" placeholder="http://192.168.1.10:1234/v1">
       <label>API Key (ถ้าไม่มีเว้นว่างได้)</label><input type="text" class="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore id="oaiKey">
-      <label>ชื่อโมเดล</label><input type="text" id="oaiModel" placeholder="ชื่อโมเดลตามที่เซิร์ฟเวอร์ใช้">
+      <label>ชื่อโมเดล (กำลังใช้งาน)</label><input type="text" id="oaiModel" placeholder="ชื่อโมเดลตามที่เซิร์ฟเวอร์ใช้">
       <div class="note">ถ้าใช้โมเดลในคอม ต้องเปิดเซิร์ฟเวอร์และเปิด CORS ในโปรแกรมนั้น และมือถือกับคอมต้องอยู่ Wi-Fi เดียวกัน</div>
     </div>
 
@@ -256,7 +322,7 @@ button{font-family:inherit;cursor:pointer}
 
     <h4>สร้างภาพ</h4>
     <label>ผู้ให้บริการสร้างภาพ</label>
-    <select id="cImgProv" onchange="showProv()">
+    <select id="cImgProv" onchange="showProv(false)">
       <option value="gemini">Gemini Image (แนะนำ: ใช้รูปตัวละคร/ฉากเป็นต้นแบบได้)</option>
       <option value="pollinations">Pollinations (ฟรี แต่ใช้รูปต้นแบบไม่ได้)</option>
       <option value="openai">OpenAI-compatible (รูปแบบ /images/generations)</option>
@@ -341,6 +407,9 @@ function defaultGs(){ return { hp:100, hpMax:100, money:"0", place:"ป่าเ
 
 var CFG_DEFAULT = {
   provider:'gemini', gemKey:'', gemModel:'gemini-3.6-flash',
+  orKey:'', orModel:'deepseek/deepseek-chat-v3-0324:free',
+  groqKey:'', groqModel:'llama-3.3-70b-versatile',
+  polModel:'openai',
   claudeKey:'', claudeModel:'claude-sonnet-5-5',
   oaiBase:'', oaiKey:'', oaiModel:'',
   prompt:'', lore:'', imgProv:'pollinations', imgBase:'', imgKey:'', imgModel:'',
@@ -438,6 +507,7 @@ var DEFAULT_PROMPT = `
 `;
 
 // แท็กระบบ: แนบอัตโนมัติทุกครั้ง (แทนส่วนที่ 7 เดิม)
+// [EDIT_PROFILE_HERE] ค้นหาคำนี้เพื่อแก้ไขความละเอียดของนิสัยและรูปลักษณ์ตัวละครเมื่อเจอกันครั้งแรก
 var TAGS = `
 0. กฎภาษา (เข้มงวด)
 - เขียนเนื้อเรื่อง คำบรรยาย และบทพูดเป็นภาษาไทยล้วนเท่านั้น ห้ามมีคำภาษาอังกฤษหรืออักษรภาษาอื่น (จีน ญี่ปุ่น รัสเซีย ฯลฯ) ปนในประโยคเด็ดขาด เช่น ห้ามเขียนว่า scent ให้ใช้คำว่า กลิ่น ยกเว้นชื่อเฉพาะที่กำหนดไว้ และข้อความในแท็กที่สั่งให้เป็นภาษาอังกฤษ (Scene/Action/Profile)
@@ -454,7 +524,7 @@ var TAGS = `
 - ความไว้ใจเปลี่ยน: [Trust: ชื่อ, +3] หรือ [Trust: ชื่อ, -10] (-100 ถึง 100) ความคุ้นเคยเพิ่มอัตโนมัติเมื่อ NPC อยู่ในฉาก
 - NPC รู้อะไรเพิ่มเกี่ยวกับเบนซ์หรือมีเหตุการณ์/คำสัญญาร่วมกัน: [Know: ชื่อ | ข้อเท็จจริงสั้นๆ] เช่น [Know: เอเลน่า | รู้ชื่อเบนซ์] [Know: เอเลน่า | เบนซ์ช่วยชีวิตไว้ที่ป่า] [Know: เอเลน่า | เบนซ์สัญญาจะพาไปเมืองท่า] ต้องใส่ "รู้ชื่อเบนซ์" ทันทีที่แนะนำตัวกัน ถ้า NPC ไม่มีบันทึกว่ารู้ชื่อเบนซ์ ห้ามเรียกชื่อเบนซ์เด็ดขาด
 - ความคิดในใจ: ต่อท้ายคำพูดของ NPC (หรือของเบนซ์) ด้วย [Thought: ชื่อ, ความรู้สึกที่แท้จริงที่ไม่ได้พูดออกมา] ใส่เป็นบางครั้งที่มีความหมาย ไม่ต้องทุกประโยค
-- NPC ที่มีชื่อเฉพาะและจะกลับมาอีก เมื่อปรากฏตัวครั้งแรกต้องใส่: [Profile: ชื่อ | เพศ อายุ นิสัยสั้นๆ ภาษาไทย | English appearance: hair, eyes, build, outfit, distinctive features] (ช่องที่ 2 ต้องขึ้นต้นด้วยคำว่า ชาย หรือ หญิง) ต้องใช้ชื่อเดิมเสมอ และยึดข้อมูล NPC ที่มีอยู่แล้วตามที่แนบให้ ตัวประกอบไม่มีชื่อ (ชาวบ้าน พ่อค้า ทหารยาม) ใช้ [NPC: พ่อค้า, อารมณ์: เฉยๆ] ได้เลยโดยไม่ต้องใส่ [Profile]
+- NPC ที่มีชื่อเฉพาะและจะกลับมาอีก เมื่อปรากฏตัวครั้งแรกต้องใส่: [Profile: ชื่อ | เพศ อายุ เผ่าพันธุ์ อาชีพ นิสัยและบุคลิกเชิงลึกโดยละเอียด จุดเด่น น้ำเสียงและคำพูดติดปาก สิ่งที่ชอบ/เกลียด ความกลัว ความลับ และเป้าหมายในชีวิต (ภาษาไทย เขียนรวมในบรรทัดเดียวห้ามใช้เครื่องหมายขีดตั้ง) | Highly detailed English visual description: exact hairstyle and hair color, eye color and eye shape, facial features and expression, skin tone, body type/height/proportions, detailed clothing/armor/accessories/weapons, and distinctive marks or aura] (ช่องที่ 2 ต้องขึ้นต้นด้วยคำว่า ชาย หรือ หญิง เสมอ) ต้องใช้ชื่อเดิมเสมอ และยึดข้อมูล NPC ที่มีอยู่แล้วตามที่แนบให้ ตัวประกอบไม่มีชื่อ (ชาวบ้าน พ่อค้า ทหารยาม) ใช้ [NPC: พ่อค้า, อารมณ์: เฉยๆ] ได้เลยโดยไม่ต้องใส่ [Profile]
 - เหตุการณ์สุ่ม: เมื่อระบบแจ้ง [เหตุการณ์สุ่มประจำเทิร์นนี้] ให้สอดแทรกในเนื้อเรื่องอย่างเป็นธรรมชาติ แล้วใส่ [Event: ปกติ|หายาก|ตำนาน | ชื่อเหตุการณ์สั้นๆ]
 - เควส: [Quest: ใหม่ | ชื่อเควส | รายละเอียดสั้นๆ] เมื่อเบนซ์รับเควส, [Quest: สำเร็จ | ชื่อเควส], [Quest: ล้มเหลว | ชื่อเควส] ใช้ชื่อเดิมเสมอ ห้ามบังคับเควสกับเบนซ์ (เป้าหมายคือ Slow life)
 - ข่าวและข่าวลือที่เบนซ์ได้ยินหรืออ่านจากกระดาน: [News: ข่าวหนึ่งประโยค] หรือระบุพื้นที่ที่ข่าวแพร่อยู่ [News: ข่าวหนึ่งประโยค | เมืองหรือฝักฝ่าย]
@@ -479,7 +549,11 @@ function saveLocs(){ return store('eld_locs', JSON.stringify(locs), true); }
 function loadAll(){
   try { var c = JSON.parse(localStorage.getItem('eld_cfg') || 'null'); if(c){ for(var k in c) cfg[k] = c[k]; } } catch(e){}
   try { var old = localStorage.getItem('geminiKey'); if(old && !cfg.gemKey) cfg.gemKey = old; } catch(e){}
-  if(cfg.gemModel === 'gemini-2.5-flash') cfg.gemModel = 'gemini-3.6-flash';
+  if(!cfg.gemModel) cfg.gemModel = CFG_DEFAULT.gemModel;
+  if(!cfg.claudeModel) cfg.claudeModel = CFG_DEFAULT.claudeModel;
+  if(!cfg.orModel) cfg.orModel = CFG_DEFAULT.orModel;
+  if(!cfg.groqModel) cfg.groqModel = CFG_DEFAULT.groqModel;
+  if(!cfg.polModel) cfg.polModel = CFG_DEFAULT.polModel;
   try { var s = JSON.parse(localStorage.getItem('eld_state') || 'null');
     if(s){ chatHistory = s.chatHistory || []; for(var k2 in (s.status||{})) gs[k2] = s.status[k2];
       currentScenePrompt = s.currentScenePrompt || ""; mem = s.mem || ""; quests = s.quests || []; news = s.news || []; seen = s.seen || {}; evCool = s.evCool || 0; rep = s.rep || {}; rumors = s.rumors || []; rules = s.rules || ""; rels = s.rels || {}; for(var rn in rels){ if(typeof rels[rn] === 'number') rels[rn] = { v:rels[rn], t:'' }; ensureRel(rn); } } } catch(e){}
@@ -491,18 +565,59 @@ function loadAll(){
 /* ---------- modal & settings ---------- */
 function openModal(id){ byId(id).classList.add('open'); }
 function closeModal(id){ byId(id).classList.remove('open'); }
-function showProv(){
+function pickPreset(selId, inpId){
+  var v = byId(selId).value;
+  if(v && v !== 'custom') byId(inpId).value = v;
+}
+function syncPreset(selId, inpId){
+  var sel = byId(selId), inp = byId(inpId); if(!sel || !inp) return;
+  var v = inp.value.trim(), found = false;
+  for(var i = 0; i < sel.options.length; i++){
+    if(sel.options[i].value === v){ sel.value = v; found = true; break; }
+  }
+  if(!found) sel.value = 'custom';
+}
+function syncAllPresets(){
+  syncPreset('gemPreset', 'gemModel');
+  syncPreset('orPreset', 'orModel');
+  syncPreset('groqPreset', 'groqModel');
+  syncPreset('polPreset', 'polModel');
+  syncPreset('claudePreset', 'claudeModel');
+}
+function updateActiveModelUI(prov, modelName){
+  if(!modelName) return;
+  var map = { gemini:['gemModel','gemPreset'], openrouter:['orModel','orPreset'], groq:['groqModel','groqPreset'], pollinations:['polModel','polPreset'], claude:['claudeModel','claudePreset'], openai:['oaiModel',null] };
+  var m = map[prov || cfg.provider]; if(!m) return;
+  var inp = byId(m[0]); if(inp) inp.value = modelName;
+  if(m[1]) syncPreset(m[1], m[0]);
+}
+function showProv(autoFill){
   var p = byId('cProv').value;
   byId('pGemini').style.display = p === 'gemini' ? 'block' : 'none';
+  byId('pOpenrouter').style.display = p === 'openrouter' ? 'block' : 'none';
+  byId('pGroq').style.display = p === 'groq' ? 'block' : 'none';
+  byId('pPollinations').style.display = p === 'pollinations' ? 'block' : 'none';
   byId('pClaude').style.display = p === 'claude' ? 'block' : 'none';
   byId('pOpenai').style.display = p === 'openai' ? 'block' : 'none';
+  if(autoFill){
+    if(p === 'gemini' && !byId('gemModel').value.trim()) byId('gemModel').value = CFG_DEFAULT.gemModel;
+    if(p === 'openrouter' && !byId('orModel').value.trim()) byId('orModel').value = CFG_DEFAULT.orModel;
+    if(p === 'groq' && !byId('groqModel').value.trim()) byId('groqModel').value = CFG_DEFAULT.groqModel;
+    if(p === 'pollinations' && !byId('polModel').value.trim()) byId('polModel').value = CFG_DEFAULT.polModel;
+    if(p === 'claude' && !byId('claudeModel').value.trim()) byId('claudeModel').value = CFG_DEFAULT.claudeModel;
+    syncAllPresets();
+  }
   var ip = byId('cImgProv').value; byId('pImg').style.display = (ip === 'openai' || ip === 'gemini') ? 'block' : 'none';
 }
 function openSettings(){
   byId('cProv').value = cfg.provider;
-  byId('gemKey').value = cfg.gemKey; byId('gemModel').value = cfg.gemModel;
-  byId('claudeKey').value = cfg.claudeKey; byId('claudeModel').value = cfg.claudeModel;
+  byId('gemKey').value = cfg.gemKey; byId('gemModel').value = cfg.gemModel || CFG_DEFAULT.gemModel;
+  byId('orKey').value = cfg.orKey || ''; byId('orModel').value = cfg.orModel || CFG_DEFAULT.orModel;
+  byId('groqKey').value = cfg.groqKey || ''; byId('groqModel').value = cfg.groqModel || CFG_DEFAULT.groqModel;
+  byId('polModel').value = cfg.polModel || CFG_DEFAULT.polModel;
+  byId('claudeKey').value = cfg.claudeKey; byId('claudeModel').value = cfg.claudeModel || CFG_DEFAULT.claudeModel;
   byId('oaiBase').value = cfg.oaiBase; byId('oaiKey').value = cfg.oaiKey; byId('oaiModel').value = cfg.oaiModel;
+  syncAllPresets();
   byId('cPrompt').value = getPrompt();
   byId('cLore').value = cfg.lore; byId('cMem').value = mem; byId('cRules').value = rules;
   byId('cImgProv').value = cfg.imgProv;
@@ -512,11 +627,14 @@ function openSettings(){
   byId('cLen').value = cfg.turnLen || '700'; byId('cHist').value = cfg.hist || '20'; byId('cEv').value = cfg.evFreq || '1';
   byId('cThink').value = cfg.think || ''; byId('cStk').value = cfg.stk || '58';
   byId('cTravel').value = getTravel(); byId('cPrices').value = getPrices();
-  showProv(); openModal('settings');
+  showProv(false); openModal('settings');
 }
 function saveSettings(){
   cfg.provider = byId('cProv').value;
   cfg.gemKey = byId('gemKey').value.trim(); cfg.gemModel = byId('gemModel').value.trim() || CFG_DEFAULT.gemModel;
+  cfg.orKey = byId('orKey').value.trim(); cfg.orModel = byId('orModel').value.trim() || CFG_DEFAULT.orModel;
+  cfg.groqKey = byId('groqKey').value.trim(); cfg.groqModel = byId('groqModel').value.trim() || CFG_DEFAULT.groqModel;
+  cfg.polModel = byId('polModel').value.trim() || CFG_DEFAULT.polModel;
   cfg.claudeKey = byId('claudeKey').value.trim(); cfg.claudeModel = byId('claudeModel').value.trim() || CFG_DEFAULT.claudeModel;
   cfg.oaiBase = byId('oaiBase').value.trim().replace(/\/+$/, ''); cfg.oaiKey = byId('oaiKey').value.trim(); cfg.oaiModel = byId('oaiModel').value.trim();
   var pr = byId('cPrompt').value;
@@ -1341,6 +1459,9 @@ function getPrompt(){ return cfg.prompt && cfg.prompt.trim() ? cfg.prompt : DEFA
 function errMsg(d, fb){ if(d && d.error){ return typeof d.error === 'string' ? d.error : (d.error.message || JSON.stringify(d.error)); } return fb; }
 function hasKey(){
   if(cfg.provider === 'gemini') return !!cfg.gemKey;
+  if(cfg.provider === 'openrouter') return !!cfg.orKey;
+  if(cfg.provider === 'groq') return !!cfg.groqKey;
+  if(cfg.provider === 'pollinations') return true;
   if(cfg.provider === 'claude') return !!cfg.claudeKey;
   return !!cfg.oaiBase && !!cfg.oaiModel;
 }
@@ -1451,11 +1572,25 @@ async function callAI(sp, msgs, maxTok, think){
     if(!out) throw new Error("ไม่ได้รับคำตอบจาก Claude (" + (d2.stop_reason || "ไม่ทราบสาเหตุ") + ")");
     return out;
   }
+  var base = cfg.oaiBase, key = cfg.oaiKey, model = cfg.oaiModel;
+  if(cfg.provider === 'openrouter'){
+    base = 'https://openrouter.ai/api/v1'; key = cfg.orKey; model = cfg.orModel || CFG_DEFAULT.orModel;
+  } else if(cfg.provider === 'groq'){
+    base = 'https://api.groq.com/openai/v1'; key = cfg.groqKey; model = cfg.groqModel || CFG_DEFAULT.groqModel;
+  } else if(cfg.provider === 'pollinations'){
+    base = 'https://text.pollinations.ai/openai'; key = ''; model = cfg.polModel || CFG_DEFAULT.polModel;
+  }
+  updateActiveModelUI(cfg.provider, model);
   var headers = { 'Content-Type':'application/json' };
-  if(cfg.oaiKey) headers['Authorization'] = 'Bearer ' + cfg.oaiKey;
-  var r3 = await fetch(cfg.oaiBase + '/chat/completions', {
+  if(key) headers['Authorization'] = 'Bearer ' + key;
+  if(cfg.provider === 'openrouter'){
+    headers['HTTP-Referer'] = location.href || 'https://eldrasia.app';
+    headers['X-Title'] = 'Eldrasia';
+  }
+  var url = (cfg.provider === 'pollinations') ? 'https://text.pollinations.ai/openai/chat/completions' : (base + '/chat/completions');
+  var r3 = await fetch(url, {
     method:'POST', headers:headers,
-    body: JSON.stringify({ model:cfg.oaiModel, messages:[{ role:'system', content:sp }].concat(msgs) })
+    body: JSON.stringify({ model:model, messages:[{ role:'system', content:sp }].concat(msgs) })
   });
   var d3 = await r3.json(); if(d3.error) throw new Error(errMsg(d3));
   var o3 = d3.choices && d3.choices[0] && d3.choices[0].message && d3.choices[0].message.content;
@@ -1572,3 +1707,4 @@ if ("serviceWorker" in navigator) {
 </script>
 </body>
 </html>
+```
